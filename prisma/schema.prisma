@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Donor {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  beef      Float    @default(0) // in grams
+  lungs     Float    @default(0) // in grams
+  bone      Float    @default(0) // in grams
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("donors")
+}
+
+model Member {
+  id            String   @id @default(cuid())
+  name          String
+  fatherName    String
+  houseName     String
+  housePriority Int      @default(999) // Lower number = higher priority
+  familyMembers Int      @default(1)
+  beefShare     Float    @default(0) // in grams (auto-calculated)
+  lungsShare    Float    @default(0) // in grams (auto-calculated)
+  boneShare     Float    @default(0) // in grams (auto-calculated)
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  slideshows SlideShow[]
+
+  @@map("members")
+}
+
+model SlideShow {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  pageNumber Int
+  createdAt  DateTime @default(now())
+
+  @@map("slideshows")
+}
