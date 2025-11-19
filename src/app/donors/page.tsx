@@ -33,6 +33,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Plus, Trash2, Pencil } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { SettingsMenu } from "@/components/SettingsMenu";
+import { UserMenu } from "@/components/UserMenu";
 
 interface Donor {
   id: string;
@@ -190,12 +191,13 @@ export default function DonorsPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         {/* Settings Menu */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-4 gap-2">
+          <UserMenu />
           <SettingsMenu />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
             <Link href="/">
               <Button
@@ -217,7 +219,7 @@ export default function DonorsPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 w-full md:w-auto">
                 <Plus className="h-4 w-4" />
                 {t("addDonor")}
               </Button>
@@ -381,73 +383,75 @@ export default function DonorsPage() {
                 {t("noDonorsYet")}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="dark:border-gray-700">
-                    <TableHead className="dark:text-gray-300">
-                      {t("name")}
-                    </TableHead>
-                    <TableHead className="dark:text-gray-300">
-                      {t("phone")}
-                    </TableHead>
-                    <TableHead className="text-right dark:text-gray-300">
-                      {t("beef")} (gm)
-                    </TableHead>
-                    <TableHead className="text-right dark:text-gray-300">
-                      {t("lungs")} (gm)
-                    </TableHead>
-                    <TableHead className="text-right dark:text-gray-300">
-                      {t("bone")} (gm)
-                    </TableHead>
-                    <TableHead className="text-right dark:text-gray-300">
-                      {t("actions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {donors.map((donor) => (
-                    <TableRow key={donor.id} className="dark:border-gray-700">
-                      <TableCell className="font-medium dark:text-white">
-                        {donor.name}
-                      </TableCell>
-                      <TableCell className="dark:text-gray-300">
-                        {donor.phone || "-"}
-                      </TableCell>
-                      <TableCell className="text-right dark:text-gray-300">
-                        {donor.beef.toFixed(0)}
-                      </TableCell>
-                      <TableCell className="text-right dark:text-gray-300">
-                        {donor.lungs.toFixed(0)}
-                      </TableCell>
-                      <TableCell className="text-right dark:text-gray-300">
-                        {donor.bone.toFixed(0)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="dark:hover:bg-gray-700"
-                            onClick={() => handleEdit(donor)}
-                            title={t("editDonor")}
-                          >
-                            <Pencil className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="dark:hover:bg-gray-700"
-                            onClick={() => handleDelete(donor.id)}
-                            title={t("deleteDonor")}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="dark:border-gray-700">
+                      <TableHead className="dark:text-gray-300">
+                        {t("name")}
+                      </TableHead>
+                      <TableHead className="dark:text-gray-300">
+                        {t("phone")}
+                      </TableHead>
+                      <TableHead className="text-right dark:text-gray-300">
+                        {t("beef")} (gm)
+                      </TableHead>
+                      <TableHead className="text-right dark:text-gray-300">
+                        {t("lungs")} (gm)
+                      </TableHead>
+                      <TableHead className="text-right dark:text-gray-300">
+                        {t("bone")} (gm)
+                      </TableHead>
+                      <TableHead className="text-right dark:text-gray-300">
+                        {t("actions")}
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {donors.map((donor) => (
+                      <TableRow key={donor.id} className="dark:border-gray-700">
+                        <TableCell className="font-medium dark:text-white">
+                          {donor.name}
+                        </TableCell>
+                        <TableCell className="dark:text-gray-300">
+                          {donor.phone || "-"}
+                        </TableCell>
+                        <TableCell className="text-right dark:text-gray-300">
+                          {donor.beef.toFixed(0)}
+                        </TableCell>
+                        <TableCell className="text-right dark:text-gray-300">
+                          {donor.lungs.toFixed(0)}
+                        </TableCell>
+                        <TableCell className="text-right dark:text-gray-300">
+                          {donor.bone.toFixed(0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="dark:hover:bg-gray-700"
+                              onClick={() => handleEdit(donor)}
+                              title={t("editDonor")}
+                            >
+                              <Pencil className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="dark:hover:bg-gray-700"
+                              onClick={() => handleDelete(donor.id)}
+                              title={t("deleteDonor")}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

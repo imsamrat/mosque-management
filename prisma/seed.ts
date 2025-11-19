@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -9,11 +10,37 @@ async function main() {
   await prisma.slideShow.deleteMany();
   await prisma.member.deleteMany();
   await prisma.donor.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.mosque.deleteMany();
+
+  // Create a default Mosque
+  const mosque = await prisma.mosque.create({
+    data: {
+      name: "Central Mosque",
+      address: "Main Street, Village Center",
+    },
+  });
+
+  console.log(`✅ Created Mosque: ${mosque.name}`);
+
+  // Create a default Admin User
+  const hashedPassword = await bcrypt.hash("password123", 10);
+  const user = await prisma.user.create({
+    data: {
+      name: "Admin User",
+      email: "admin@example.com",
+      password: hashedPassword,
+      mosqueId: mosque.id,
+    },
+  });
+
+  console.log(`✅ Created User: ${user.email} (password: password123)`);
 
   // Create Donors with dummy data
   const donors = await Promise.all([
     prisma.donor.create({
       data: {
+        mosqueId: mosque.id,
         name: "Ahmed Ali",
         phone: "0300-1234567",
         beef: 25000, // 25 kg in grams
@@ -23,6 +50,7 @@ async function main() {
     }),
     prisma.donor.create({
       data: {
+        mosqueId: mosque.id,
         name: "Mohammad Hussain",
         phone: "0321-9876543",
         beef: 30000, // 30 kg
@@ -32,6 +60,7 @@ async function main() {
     }),
     prisma.donor.create({
       data: {
+        mosqueId: mosque.id,
         name: "Fatima Bibi",
         phone: "0333-4567890",
         beef: 20000, // 20 kg
@@ -41,6 +70,7 @@ async function main() {
     }),
     prisma.donor.create({
       data: {
+        mosqueId: mosque.id,
         name: "Hassan Khan",
         phone: "0345-1112233",
         beef: 35000, // 35 kg
@@ -50,6 +80,7 @@ async function main() {
     }),
     prisma.donor.create({
       data: {
+        mosqueId: mosque.id,
         name: "Ayesha Malik",
         phone: "0312-5556677",
         beef: 28000, // 28 kg
@@ -65,6 +96,7 @@ async function main() {
   const members = await Promise.all([
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Abdul Rahman",
         fatherName: "Abdul Aziz",
         houseName: "House #1, Street 5",
@@ -74,6 +106,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Usman Farooq",
         fatherName: "Farooq Ahmed",
         houseName: "House #12, Green Block",
@@ -83,6 +116,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Bilal Ahmad",
         fatherName: "Ahmad Ali",
         houseName: "House #7, Main Road",
@@ -92,6 +126,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Hamza Raza",
         fatherName: "Raza Hussain",
         houseName: "House #23, Model Town",
@@ -101,6 +136,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Ibrahim Sheikh",
         fatherName: "Sheikh Mohammad",
         houseName: "House #45, Park View",
@@ -110,6 +146,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Yusuf Khan",
         fatherName: "Khan Sahib",
         houseName: "House #8, Saddar",
@@ -119,6 +156,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Omar Abdullah",
         fatherName: "Abdullah Jan",
         houseName: "House #19, Colony",
@@ -128,6 +166,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Salman Haider",
         fatherName: "Haider Ali",
         houseName: "House #31, Gulshan",
@@ -137,6 +176,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Zain Abbas",
         fatherName: "Abbas Ali",
         houseName: "House #14, Clifton",
@@ -146,6 +186,7 @@ async function main() {
     }),
     prisma.member.create({
       data: {
+        mosqueId: mosque.id,
         name: "Talha Mehmood",
         fatherName: "Mehmood Khan",
         houseName: "House #27, DHA",

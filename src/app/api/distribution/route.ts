@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 // POST - Calculate and distribute shares
 export async function POST() {
   try {
-    // Get all donors
-    const donors = await prisma.donor.findMany();
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const mosqueId = session.user.mosqueId;
+
+    // Get all donors for this mosque
+    const donors = await prisma.donor.findMany({
+      where: { mosqueId },
+    });
 
     // Calculate totals in grams
     const totalBeef = donors.reduce(
@@ -21,8 +32,10 @@ export async function POST() {
       0
     );
 
-    // Get all members
-    const members = await prisma.member.findMany();
+    // Get all members for this mosque
+    const members = await prisma.member.findMany({
+      where: { mosqueId },
+    });
 
     if (members.length === 0) {
       return NextResponse.json(
@@ -90,8 +103,19 @@ export async function POST() {
 // GET - Get distribution summary
 export async function GET() {
   try {
-    const donors = await prisma.donor.findMany();
-    const members = await prisma.member.findMany();
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const mosqueId = session.user.mosqueId;
+
+    const donors = await prisma.donor.findMany({
+      where: { mosqueId },
+    });
+    const members = await prisma.member.findMany({
+      where: { mosqueId },
+    });
 
     const totalBeef = donors.reduce(
       (sum: number, donor: any) => sum + donor.beef,

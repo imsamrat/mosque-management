@@ -10,8 +10,51 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+model Mosque {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  donors    Donor[]
+  members   Member[]
+  houses    House[]
+
+  @@map("mosques")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  mosqueId  String
+  mosque    Mosque   @relation(fields: [mosqueId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model House {
+  id        String   @id @default(cuid())
+  mosqueId  String
+  mosque    Mosque   @relation(fields: [mosqueId], references: [id], onDelete: Cascade)
+  name      String
+  priority  Int      @default(999)
+  members   Member[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("houses")
+}
+
 model Donor {
   id        String   @id @default(cuid())
+  mosqueId  String
+  mosque    Mosque   @relation(fields: [mosqueId], references: [id], onDelete: Cascade)
   name      String
   phone     String?
   beef      Float    @default(0) // in grams
@@ -25,10 +68,14 @@ model Donor {
 
 model Member {
   id            String   @id @default(cuid())
+  mosqueId      String
+  mosque        Mosque   @relation(fields: [mosqueId], references: [id], onDelete: Cascade)
+  houseId       String?
+  house         House?   @relation(fields: [houseId], references: [id])
   name          String
   fatherName    String
-  houseName     String
-  housePriority Int      @default(999) // Lower number = higher priority
+  houseName     String?  // Kept for backward compatibility or manual entry if needed, but House relation is preferred
+  housePriority Int      @default(999) // Can be inherited from House
   familyMembers Int      @default(1)
   beefShare     Float    @default(0) // in grams (auto-calculated)
   lungsShare    Float    @default(0) // in grams (auto-calculated)

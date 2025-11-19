@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Calculator, Users, Beef, Package } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { SettingsMenu } from "@/components/SettingsMenu";
+import { UserMenu } from "@/components/UserMenu";
 
 interface DistributionSummary {
   totals: {
@@ -113,12 +114,13 @@ export default function DistributionPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         {/* Settings Menu */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-4 gap-2">
+          <UserMenu />
           <SettingsMenu />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
             <Link href="/">
               <Button
@@ -142,7 +144,7 @@ export default function DistributionPage() {
             onClick={handleCalculateDistribution}
             disabled={isCalculating}
             size="lg"
-            className="gap-2"
+            className="gap-2 w-full md:w-auto"
           >
             <Calculator className="h-5 w-5" />
             {isCalculating ? t("calculating") : t("calculateBtn")}

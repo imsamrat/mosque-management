@@ -1,56 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-// GET - Get all unique houses with member counts and priorities
-export async function GET() {
+// GET all houses
+export async function GET(request: NextRequest) {
   try {
-    const members = await prisma.member.findMany({
-      select: {
-        houseName: true,
-        housePriority: true,
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const houses = await prisma.house.findMany({
+      where: {
+        mosqueId: session.user.mosqueId,
+      },
+      orderBy: {
+        priority: "asc",
       },
     });
 
-    // Group by house name
-    const housesMap = new Map<
-      string,
-      { housePriority: number; count: number }
-    >();
-
-    members.forEach((member) => {
-      const existing = housesMap.get(member.houseName);
-      if (existing) {
-        existing.count++;
-        // Take the minimum priority (most members will have same priority)
-        existing.housePriority = Math.min(
-          existing.housePriority,
-          member.housePriority
-        );
-      } else {
-        housesMap.set(member.houseName, {
-          housePriority: member.housePriority,
-          count: 1,
-        });
-      }
-    });
-
-    // Convert to array and sort by priority
-    const houses = Array.from(housesMap.entries())
-      .map(([houseName, data]) => ({
-        houseName,
-        housePriority: data.housePriority,
-        memberCount: data.count,
-      }))
-      .sort((a, b) => {
-        if (a.housePriority !== b.housePriority) {
-          return a.housePriority - b.housePriority;
-        }
-        return a.houseName.localeCompare(b.houseName);
-      });
-
     return NextResponse.json(houses);
   } catch (error) {
-    console.error("Error fetching houses:", error);
     return NextResponse.json(
       { error: "Failed to fetch houses" },
       { status: 500 }
@@ -58,41 +29,120 @@ export async function GET() {
   }
 }
 
-// PATCH - Update house priority (updates all members from that house)
-export async function PATCH(request: NextRequest) {
+// POST create new house
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { houseName, housePriority } = body;
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!houseName) {
+    const body = await request.json();
+    const { name, priority } = body;
+
+    if (!name) {
       return NextResponse.json(
         { error: "House name is required" },
         { status: 400 }
       );
     }
 
-    const priority = parseInt(housePriority) || 999;
-
-    // Update all members from this house
-    const result = await prisma.member.updateMany({
-      where: {
-        houseName: houseName,
-      },
+    const house = await prisma.house.create({
       data: {
-        housePriority: priority,
+        mosqueId: session.user.mosqueId,
+        name,
+        priority: priority ? parseInt(priority) : 999,
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      houseName,
-      housePriority: priority,
-      updatedCount: result.count,
-    });
+    return NextResponse.json(house, { status: 201 });
   } catch (error) {
-    console.error("Error updating house priority:", error);
     return NextResponse.json(
-      { error: "Failed to update house priority" },
+      { error: "Failed to create house" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH update house
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, name, priority } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "House ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify ownership
+    const existingHouse = await prisma.house.findUnique({
+      where: { id },
+    });
+
+    if (!existingHouse || existingHouse.mosqueId !== session.user.mosqueId) {
+      return NextResponse.json({ error: "House not found" }, { status: 404 });
+    }
+
+    const house = await prisma.house.update({
+      where: { id },
+      data: {
+        name,
+        priority: priority ? parseInt(priority) : undefined,
+      },
+    });
+
+    return NextResponse.json(house);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to update house" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE house
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "House ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify ownership
+    const existingHouse = await prisma.house.findUnique({
+      where: { id },
+    });
+
+    if (!existingHouse || existingHouse.mosqueId !== session.user.mosqueId) {
+      return NextResponse.json({ error: "House not found" }, { status: 404 });
+    }
+
+    await prisma.house.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: "House deleted successfully" });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to delete house" },
       { status: 500 }
     );
   }

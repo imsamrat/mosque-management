@@ -42,12 +42,14 @@ import {
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { SettingsMenu } from "@/components/SettingsMenu";
+import { UserMenu } from "@/components/UserMenu";
 
 interface Member {
   id: string;
   name: string;
   fatherName: string;
   houseName: string;
+  houseId?: string;
   housePriority: number;
   familyMembers: number;
   beefShare: number;
@@ -71,12 +73,27 @@ export default function MembersPage() {
   const [formData, setFormData] = useState({
     name: "",
     fatherName: "",
+    houseId: "",
     houseName: "",
     housePriority: "999",
     familyMembers: "1",
   });
   const { toast } = useToast();
   const { t } = useApp();
+
+  const [houses, setHouses] = useState<{ id: string; name: string; priority: number }[]>([]);
+
+  const fetchHouses = async () => {
+    try {
+      const res = await fetch("/api/houses");
+      if (res.ok) {
+        const data = await res.json();
+        setHouses(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch houses");
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -99,6 +116,7 @@ export default function MembersPage() {
 
   useEffect(() => {
     fetchMembers();
+    fetchHouses();
   }, [pagination.page, search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,6 +145,7 @@ export default function MembersPage() {
           setFormData({
             name: "",
             fatherName: "",
+            houseId: "",
             houseName: "",
             housePriority: "999",
             familyMembers: "1",
@@ -152,6 +171,7 @@ export default function MembersPage() {
           setFormData({
             name: "",
             fatherName: "",
+            houseId: "",
             houseName: "",
             housePriority: "999",
             familyMembers: "1",
@@ -177,6 +197,7 @@ export default function MembersPage() {
     setFormData({
       name: member.name,
       fatherName: member.fatherName,
+      houseId: member.houseId || "",
       houseName: member.houseName,
       housePriority: member.housePriority.toString(),
       familyMembers: member.familyMembers.toString(),
@@ -191,6 +212,7 @@ export default function MembersPage() {
       setFormData({
         name: "",
         fatherName: "",
+        houseId: "",
         houseName: "",
         housePriority: "999",
         familyMembers: "1",
@@ -255,12 +277,13 @@ export default function MembersPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors">
       <div className="container mx-auto px-4 py-8">
         {/* Settings */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-4 gap-2">
+          <UserMenu />
           <SettingsMenu />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
             <Link href="/">
               <Button variant="ghost" size="icon">
@@ -278,7 +301,7 @@ export default function MembersPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 w-full md:w-auto">
                 <Plus className="h-4 w-4" />
                 {t("addMember")}
               </Button>
@@ -319,36 +342,36 @@ export default function MembersPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="houseName">{t("houseName")} *</Label>
-                    <Input
-                      id="houseName"
-                      value={formData.houseName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, houseName: e.target.value })
-                      }
+                    <Label htmlFor="houseId">{t("houseName")} *</Label>
+                    <select
+                      id="houseId"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                      value={formData.houseId}
+                      onChange={(e) => {
+                        const selectedHouse = houses.find(h => h.id === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          houseId: e.target.value,
+                          houseName: selectedHouse ? selectedHouse.name : "",
+                          housePriority: selectedHouse ? selectedHouse.priority.toString() : "999"
+                        });
+                      }}
                       required
-                    />
+                    >
+                      <option value="">Select a House</option>
+                      {houses.map((house) => (
+                        <option key={house.id} value={house.id}>
+                          {house.name} (Priority: {house.priority})
+                        </option>
+                      ))}
+                    </select>
+                    {houses.length === 0 && (
+                      <p className="text-xs text-red-500">
+                        No houses found. Please <Link href="/houses" className="underline">add a house</Link> first.
+                      </p>
+                    )}
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="housePriority">{t("housePriority")}</Label>
-                    <Input
-                      id="housePriority"
-                      type="number"
-                      min="1"
-                      max="999"
-                      value={formData.housePriority}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          housePriority: e.target.value,
-                        })
-                      }
-                      placeholder="999 (no priority)"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Lower number = higher priority in slideshow
-                    </p>
-                  </div>
+                  
                   <div className="grid gap-2">
                     <Label htmlFor="familyMembers">{t("familyMembers")}</Label>
                     <Input
@@ -410,123 +433,125 @@ export default function MembersPage() {
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="dark:text-gray-300">
-                        {t("name")}
-                      </TableHead>
-                      <TableHead className="dark:text-gray-300">
-                        {t("fatherName")}
-                      </TableHead>
-                      <TableHead className="dark:text-gray-300">
-                        {t("houseName")}
-                      </TableHead>
-                      <TableHead className="text-center dark:text-gray-300">
-                        {t("housePriority")}
-                      </TableHead>
-                      <TableHead className="text-center dark:text-gray-300">
-                        {t("familyMembers")}
-                      </TableHead>
-                      <TableHead className="text-right dark:text-gray-300">
-                        {t("beefShare")}
-                      </TableHead>
-                      <TableHead className="text-right dark:text-gray-300">
-                        {t("lungsShare")}
-                      </TableHead>
-                      <TableHead className="text-right dark:text-gray-300">
-                        {t("boneShare")}
-                      </TableHead>
-                      <TableHead className="dark:text-gray-300">
-                        {t("status")}
-                      </TableHead>
-                      <TableHead className="text-right dark:text-gray-300">
-                        {t("actions")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {members.map((member) => (
-                      <TableRow
-                        key={member.id}
-                        className="dark:border-gray-700"
-                      >
-                        <TableCell className="font-medium dark:text-white">
-                          {member.name}
-                        </TableCell>
-                        <TableCell className="dark:text-gray-300">
-                          {member.fatherName}
-                        </TableCell>
-                        <TableCell className="dark:text-gray-300">
-                          {member.houseName}
-                        </TableCell>
-                        <TableCell className="text-center font-semibold text-orange-600 dark:text-orange-400">
-                          {member.housePriority < 999
-                            ? member.housePriority
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-center font-semibold text-blue-600 dark:text-blue-400">
-                          {member.familyMembers}
-                        </TableCell>
-                        <TableCell className="text-right dark:text-gray-300">
-                          {member.beefShare.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right dark:text-gray-300">
-                          {member.lungsShare.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right dark:text-gray-300">
-                          {member.boneShare.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant={
-                              member.status === "COMPLETED"
-                                ? "default"
-                                : "outline"
-                            }
-                            size="sm"
-                            className="gap-2"
-                            onClick={() =>
-                              handleStatusToggle(member.id, member.status)
-                            }
-                          >
-                            {member.status === "COMPLETED" ? (
-                              <>
-                                <CheckCircle className="h-4 w-4" />
-                                Completed
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="h-4 w-4" />
-                                Pending
-                              </>
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(member)}
-                              title="Edit member"
-                            >
-                              <Pencil className="h-4 w-4 text-blue-500" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(member.id)}
-                              title="Delete member"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="dark:text-gray-300">
+                          {t("name")}
+                        </TableHead>
+                        <TableHead className="dark:text-gray-300">
+                          {t("fatherName")}
+                        </TableHead>
+                        <TableHead className="dark:text-gray-300">
+                          {t("houseName")}
+                        </TableHead>
+                        <TableHead className="text-center dark:text-gray-300">
+                          {t("housePriority")}
+                        </TableHead>
+                        <TableHead className="text-center dark:text-gray-300">
+                          {t("familyMembers")}
+                        </TableHead>
+                        <TableHead className="text-right dark:text-gray-300">
+                          {t("beefShare")}
+                        </TableHead>
+                        <TableHead className="text-right dark:text-gray-300">
+                          {t("lungsShare")}
+                        </TableHead>
+                        <TableHead className="text-right dark:text-gray-300">
+                          {t("boneShare")}
+                        </TableHead>
+                        <TableHead className="dark:text-gray-300">
+                          {t("status")}
+                        </TableHead>
+                        <TableHead className="text-right dark:text-gray-300">
+                          {t("actions")}
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {members.map((member) => (
+                        <TableRow
+                          key={member.id}
+                          className="dark:border-gray-700"
+                        >
+                          <TableCell className="font-medium dark:text-white">
+                            {member.name}
+                          </TableCell>
+                          <TableCell className="dark:text-gray-300">
+                            {member.fatherName}
+                          </TableCell>
+                          <TableCell className="dark:text-gray-300">
+                            {member.houseName}
+                          </TableCell>
+                          <TableCell className="text-center font-semibold text-orange-600 dark:text-orange-400">
+                            {member.housePriority < 999
+                              ? member.housePriority
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="text-center font-semibold text-blue-600 dark:text-blue-400">
+                            {member.familyMembers}
+                          </TableCell>
+                          <TableCell className="text-right dark:text-gray-300">
+                            {member.beefShare.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right dark:text-gray-300">
+                            {member.lungsShare.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right dark:text-gray-300">
+                            {member.boneShare.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant={
+                                member.status === "COMPLETED"
+                                  ? "default"
+                                  : "outline"
+                              }
+                              size="sm"
+                              className="gap-2"
+                              onClick={() =>
+                                handleStatusToggle(member.id, member.status)
+                              }
+                            >
+                              {member.status === "COMPLETED" ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Completed
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-4 w-4" />
+                                  Pending
+                                </>
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(member)}
+                                title="Edit member"
+                              >
+                                <Pencil className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(member.id)}
+                                title="Delete member"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between mt-4">

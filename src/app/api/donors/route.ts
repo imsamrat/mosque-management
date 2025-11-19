@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 // GET all donors
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const donors = await prisma.donor.findMany({
+      where: {
+        mosqueId: session.user.mosqueId,
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -21,6 +31,11 @@ export async function GET() {
 // POST create new donor
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, phone, beef, lungs, bone } = body;
 
@@ -30,6 +45,7 @@ export async function POST(request: NextRequest) {
 
     const donor = await prisma.donor.create({
       data: {
+        mosqueId: session.user.mosqueId,
         name,
         phone: phone || null,
         beef: parseFloat(beef) || 0,
@@ -50,6 +66,11 @@ export async function POST(request: NextRequest) {
 // PATCH update donor
 export async function PATCH(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, name, phone, beef, lungs, bone } = body;
 
@@ -62,6 +83,15 @@ export async function PATCH(request: NextRequest) {
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    // Verify ownership
+    const existingDonor = await prisma.donor.findUnique({
+      where: { id },
+    });
+
+    if (!existingDonor || existingDonor.mosqueId !== session.user.mosqueId) {
+      return NextResponse.json({ error: "Donor not found" }, { status: 404 });
     }
 
     const donor = await prisma.donor.update({
@@ -87,6 +117,11 @@ export async function PATCH(request: NextRequest) {
 // DELETE donor
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -95,6 +130,15 @@ export async function DELETE(request: NextRequest) {
         { error: "Donor ID is required" },
         { status: 400 }
       );
+    }
+
+    // Verify ownership
+    const existingDonor = await prisma.donor.findUnique({
+      where: { id },
+    });
+
+    if (!existingDonor || existingDonor.mosqueId !== session.user.mosqueId) {
+      return NextResponse.json({ error: "Donor not found" }, { status: 404 });
     }
 
     await prisma.donor.delete({

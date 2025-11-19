@@ -30,14 +30,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Home, Plus, Pencil, Users } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Pencil, Home } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { SettingsMenu } from "@/components/SettingsMenu";
+import { UserMenu } from "@/components/UserMenu";
 
 interface House {
-  houseName: string;
-  housePriority: number;
-  memberCount: number;
+  id: string;
+  name: string;
+  priority: number;
+  createdAt: string;
 }
 
 export default function HousesPage() {
@@ -46,8 +48,8 @@ export default function HousesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHouse, setEditingHouse] = useState<House | null>(null);
   const [formData, setFormData] = useState({
-    houseName: "",
-    housePriority: "999",
+    name: "",
+    priority: "999",
   });
   const { toast } = useToast();
   const { t } = useApp();
@@ -74,43 +76,57 @@ export default function HousesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.houseName.trim()) {
-      toast({
-        title: "Error",
-        description: "House name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      const res = await fetch("/api/houses", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          houseName: formData.houseName.trim(),
-          housePriority: parseInt(formData.housePriority) || 999,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        toast({
-          title: t("success"),
-          description: `${t("updated")} ${data.updatedCount} ${t("members")}`,
+      if (editingHouse) {
+        // Update existing house
+        const res = await fetch("/api/houses", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingHouse.id,
+            ...formData,
+            priority: parseInt(formData.priority),
+          }),
         });
-        setIsDialogOpen(false);
-        setEditingHouse(null);
-        setFormData({ houseName: "", housePriority: "999" });
-        fetchHouses();
+
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "House updated successfully",
+          });
+          setIsDialogOpen(false);
+          setEditingHouse(null);
+          setFormData({ name: "", priority: "999" });
+          fetchHouses();
+        } else {
+          throw new Error("Failed to update house");
+        }
       } else {
-        throw new Error("Failed to update house");
+        // Create new house
+        const res = await fetch("/api/houses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "House added successfully",
+          });
+          setIsDialogOpen(false);
+          setFormData({ name: "", priority: "999" });
+          fetchHouses();
+        } else {
+          throw new Error("Failed to add house");
+        }
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update house priority",
+        description: editingHouse
+          ? "Failed to update house"
+          : "Failed to add house",
         variant: "destructive",
       });
     }
@@ -119,8 +135,8 @@ export default function HousesPage() {
   const handleEdit = (house: House) => {
     setEditingHouse(house);
     setFormData({
-      houseName: house.houseName,
-      housePriority: house.housePriority.toString(),
+      name: house.name,
+      priority: house.priority.toString(),
     });
     setIsDialogOpen(true);
   };
@@ -129,202 +145,191 @@ export default function HousesPage() {
     setIsDialogOpen(open);
     if (!open) {
       setEditingHouse(null);
-      setFormData({ houseName: "", housePriority: "999" });
+      setFormData({ name: "", priority: "999" });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center dark:text-gray-300">{t("loading")}</div>
-      </div>
-    );
-  }
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this house?")) return;
+
+    try {
+      const res = await fetch(`/api/houses?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Success",
+          description: "House deleted successfully",
+        });
+        fetchHouses();
+      } else {
+        throw new Error("Failed to delete house");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete house",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors">
       <div className="container mx-auto px-4 py-8">
-        {/* Settings Menu */}
-        <div className="flex justify-end mb-4">
+        {/* Settings */}
+        <div className="flex justify-end mb-4 gap-2">
+          <UserMenu />
           <SettingsMenu />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="dark:text-white dark:hover:bg-gray-700"
-              >
+              <Button variant="ghost" size="icon">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold text-green-800 dark:text-green-400">
-                {t("houseManagement")}
+              <h1 className="text-4xl font-bold text-blue-800 dark:text-blue-400">
+                House Management
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {t("manageSlideshowPriority")}
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                Manage houses and their priorities
               </p>
             </div>
           </div>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 w-full md:w-auto">
+                <Plus className="h-4 w-4" />
+                Add House
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleSubmit}>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingHouse ? "Edit House" : "Add New House"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingHouse
+                      ? "Update house details"
+                      : "Enter house details"}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">House Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Input
+                      id="priority"
+                      type="number"
+                      min="1"
+                      max="999"
+                      value={formData.priority}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          priority: e.target.value,
+                        })
+                      }
+                      placeholder="999 (no priority)"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">
+                    {editingHouse ? "Update" : "Add"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-
-        {/* Info Card */}
-        <Card className="mb-8 border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-800">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Home className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-1" />
-              <div>
-                <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                  {t("howItWorks")}
-                </h3>
-                <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-                  <li>• {t("houseInfo1")}</li>
-                  <li>• {t("houseInfo2")}</li>
-                  <li>• {t("houseInfo3")}</li>
-                  <li>• {t("houseInfo4")}</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Houses Table */}
         <Card className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="dark:text-white">{t("allHouses")}</CardTitle>
+            <CardTitle className="dark:text-white">
+              All Houses ({houses.length})
+            </CardTitle>
             <CardDescription className="dark:text-gray-400">
-              {t("clickToSetPriority")}
+              List of registered houses
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {houses.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8 dark:text-gray-300">
+                Loading...
+              </div>
+            ) : houses.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                {t("noHousesYet")}
+                No houses found. Click "Add House" to get started.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="dark:border-gray-700">
-                    <TableHead className="dark:text-gray-300">
-                      {t("houseName")}
-                    </TableHead>
-                    <TableHead className="dark:text-gray-300">
-                      {t("memberCount")}
-                    </TableHead>
-                    <TableHead className="dark:text-gray-300">
-                      {t("currentPriority")}
-                    </TableHead>
-                    <TableHead className="text-right dark:text-gray-300">
-                      {t("actions")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {houses.map((house) => (
-                    <TableRow
-                      key={house.houseName}
-                      className="dark:border-gray-700"
-                    >
-                      <TableCell className="font-medium dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <Home className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          {house.houseName}
-                        </div>
-                      </TableCell>
-                      <TableCell className="dark:text-gray-300">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          {house.memberCount} {t("members")}
-                        </div>
-                      </TableCell>
-                      <TableCell className="dark:text-gray-300">
-                        {house.housePriority < 999 ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                            {house.housePriority}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 dark:text-gray-500">
-                            -
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="dark:hover:bg-gray-700"
-                          onClick={() => handleEdit(house)}
-                        >
-                          <Pencil className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
-                          {t("setPriority")}
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="dark:text-gray-300">Name</TableHead>
+                      <TableHead className="text-center dark:text-gray-300">
+                        Priority
+                      </TableHead>
+                      <TableHead className="text-right dark:text-gray-300">
+                        Actions
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {houses.map((house) => (
+                      <TableRow key={house.id} className="dark:border-gray-700">
+                        <TableCell className="font-medium dark:text-white">
+                          {house.name}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold text-orange-600 dark:text-orange-400">
+                          {house.priority < 999 ? house.priority : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(house)}
+                              title="Edit house"
+                            >
+                              <Pencil className="h-4 w-4 text-blue-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(house.id)}
+                              title="Delete house"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
-
-        {/* Edit Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-          <DialogContent className="dark:bg-gray-800 dark:border-gray-700">
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle className="dark:text-white">
-                  {t("setHousePriority")}
-                </DialogTitle>
-                <DialogDescription className="dark:text-gray-400">
-                  {t("allMembersWillUpdate")}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="houseName" className="dark:text-gray-300">
-                    {t("houseName")}
-                  </Label>
-                  <Input
-                    id="houseName"
-                    value={formData.houseName}
-                    disabled
-                    className="bg-gray-100 dark:bg-gray-700 dark:text-gray-400"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="priority" className="dark:text-gray-300">
-                    {t("housePriority")} *
-                  </Label>
-                  <Input
-                    id="priority"
-                    type="number"
-                    min="1"
-                    max="999"
-                    value={formData.housePriority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        housePriority: e.target.value,
-                      })
-                    }
-                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {t("lowerNumberHigherPriority")}
-                  </p>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">{t("updateAllMembers")}</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

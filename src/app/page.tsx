@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { SettingsMenu } from "@/components/SettingsMenu";
+import { UserMenu } from "@/components/UserMenu";
 
 export default function Home() {
   const { t } = useApp();
@@ -26,7 +27,8 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors">
       <div className="container mx-auto px-4 py-12">
         {/* Settings */}
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-4 gap-2">
+          <UserMenu />
           <SettingsMenu />
         </div>
 

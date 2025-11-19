@@ -194,25 +194,48 @@ export default function SlideshowPage() {
         </AnimatePresence>
       </div>
 
-      <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center gap-6">
+      {/* Desktop Navigation - Left */}
+      <Button
+        onClick={handlePrevious}
+        variant="ghost"
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 h-16 w-16 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 shadow-xl transition-all duration-300 hover:scale-110 hidden md:flex items-center justify-center group"
+        aria-label="Previous Slide"
+      >
+        <ChevronLeft className="h-10 w-10 group-hover:-translate-x-1 transition-transform" />
+      </Button>
+
+      {/* Desktop Navigation - Right */}
+      <Button
+        onClick={handleNext}
+        variant="ghost"
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 h-16 w-16 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 shadow-xl transition-all duration-300 hover:scale-110 hidden md:flex items-center justify-center group"
+        aria-label="Next Slide"
+      >
+        <ChevronRight className="h-10 w-10 group-hover:translate-x-1 transition-transform" />
+      </Button>
+
+      {/* Bottom Controls (Mobile Nav & Hint) */}
+      <div className="absolute bottom-8 left-0 right-0 flex justify-center items-center gap-6 z-20">
         <Button
           onClick={handlePrevious}
-          size="lg"
-          variant="secondary"
-          className="rounded-full h-14 w-14 shadow-lg"
+          variant="ghost"
+          size="icon"
+          className="md:hidden h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 shadow-lg"
+          aria-label="Previous Slide"
         >
           <ChevronLeft className="h-6 w-6" />
         </Button>
         
-        <div className="text-white dark:text-gray-300 text-sm bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm">
+        <div className="text-white dark:text-gray-300 text-sm bg-black/30 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10 font-medium tracking-wide shadow-lg">
           {t("pressKeys")}
         </div>
 
         <Button
           onClick={handleNext}
-          size="lg"
-          variant="secondary"
-          className="rounded-full h-14 w-14 shadow-lg"
+          variant="ghost"
+          size="icon"
+          className="md:hidden h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 shadow-lg"
+          aria-label="Next Slide"
         >
           <ChevronRight className="h-6 w-6" />
         </Button>
